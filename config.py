@@ -84,10 +84,10 @@ START_IMG_URL = getenv(
     "START_IMG_URL", "https://envs.sh/AJT.jpg"
 )
 PING_IMG_URL = getenv(
-    "PING_IMG_URL", "https://envs.sh/AJT.jpg"
+    "PING_IMG_URL", "https://envs.sh/AJA.jpg"
 )
 PLAYLIST_IMG_URL = "https://envs.sh/AJT.jpg"
-STATS_IMG_URL = "https://envs.sh/AJT.jpg"
+STATS_IMG_URL = "https://graph.org/file/82d994fa7a374a52b2af6-536fd78cad0dfb1bbb.jpg"
 TELEGRAM_AUDIO_URL = "https://envs.sh/AJT.jpg"
 TELEGRAM_VIDEO_URL = "https://envs.sh/AJT.jpg"
 STREAM_IMG_URL = "https://envs.sh/AJT.jpg"
