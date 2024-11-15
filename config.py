@@ -81,7 +81,7 @@ confirmer = {}
 
 
 START_VIDEO_URL = getenv(
-    "START_VIDEO_URL", "https://envs.sh/L7u.mp4"
+    "START_VIDEO_URL", "https://envs.sh/Lsb.mp4"
 )
 PING_IMG_URL = getenv(
     "PING_IMG_URL", "https://envs.sh/AJT.jpg"
