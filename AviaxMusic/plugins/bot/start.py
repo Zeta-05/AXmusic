@@ -33,6 +33,7 @@ async def send_start_video(chat_id):
             video=config.START_VIDEO_URL,
             supports_streaming=True
         )
+        print(f"Video sent successfully, message ID: {sent_video.message_id}")  # Debugging
         return sent_video.message_id  # Return the message ID of the sent video
     except Exception as e:
         print(f"Error sending video: {e}")
@@ -52,8 +53,9 @@ async def start_pm(client, message: Message, _):
 
     # Send the video first
     video_message_id = await send_start_video(message.chat.id)
-
     if video_message_id:
+        print(f"Video sent, now preparing to send the caption.")  # Debugging
+
         # Add a brief delay to ensure the video is fully sent
         await asyncio.sleep(1)
 
@@ -65,6 +67,7 @@ async def start_pm(client, message: Message, _):
                 reply_markup=InlineKeyboardMarkup(private_panel(_)),
                 reply_to_message_id=video_message_id  # Quote the video message
             )
+            print(f"Text message sent as a reply to video.")  # Debugging
         except Exception as e:
             print(f"Error sending text: {e}")
 
@@ -84,8 +87,9 @@ async def start_group(client, message: Message, _):
 
     # Send the video in the group
     video_message_id = await send_start_video(message.chat.id)
-
     if video_message_id:
+        print(f"Video sent, now preparing to send the caption.")  # Debugging
+
         await asyncio.sleep(1)  # Ensure video is fully sent
         try:
             await app.send_message(
@@ -94,6 +98,7 @@ async def start_group(client, message: Message, _):
                 reply_markup=InlineKeyboardMarkup(out),
                 reply_to_message_id=video_message_id  # Quote the video message
             )
+            print(f"Text message sent as a reply to video.")  # Debugging
         except Exception as e:
             print(f"Error sending text in group: {e}")
 
