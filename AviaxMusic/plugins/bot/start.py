@@ -2,28 +2,16 @@ import time
 import asyncio
 
 from pyrogram import filters
-from pyrogram.enums import ChatType
 from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup, Message
-from youtubesearchpython import VideosSearch
+from pyrogram.enums import ChatType
 
 import config
 from AviaxMusic import app
 from AviaxMusic.misc import _boot_
-from AviaxMusic.plugins.sudo.sudoers import sudoers_list
-from AviaxMusic.utils.database import (
-    add_served_chat,
-    add_served_user,
-    blacklisted_chats,
-    get_lang,
-    is_banned_user,
-    is_on_off,
-)
+from AviaxMusic.utils.database import add_served_chat, add_served_user
+from AviaxMusic.utils.inline import private_panel, start_panel
 from AviaxMusic.utils import bot_sys_stats
-from AviaxMusic.utils.decorators.language import LanguageStart
-from AviaxMusic.utils.formatters import get_readable_time
-from AviaxMusic.utils.inline import help_pannel, private_panel, start_panel
-from config import BANNED_USERS, SUPPORT_GROUP, START_VIDEO_URL
-from strings import get_string
+from config import START_VIDEO_URL, SUPPORT_GROUP
 
 
 async def send_start_video(chat_id, reply_to_message_id=None):
@@ -31,9 +19,9 @@ async def send_start_video(chat_id, reply_to_message_id=None):
     try:
         sent_video = await app.send_video(
             chat_id=chat_id,
-            video=config.START_VIDEO_URL,
+            video=START_VIDEO_URL,
             supports_streaming=True,
-            reply_to_message_id=reply_to_message_id,  # Quoting the message
+            reply_to_message_id=reply_to_message_id,  # Quote the message
         )
         return sent_video
     except Exception as e:
@@ -41,116 +29,75 @@ async def send_start_video(chat_id, reply_to_message_id=None):
         return None
 
 
-@app.on_message(filters.command("start") & filters.private & ~BANNED_USERS)
-@LanguageStart
-async def start_pm(client, message: Message, _):
+@app.on_message(filters.command("start") & filters.private)
+async def start_pm(client, message: Message):
+    """Handle the /start command in private chat."""
+    print(f"Received /start command from {message.from_user.mention}")
+
+    # Log the user in the database
     await add_served_user(message.from_user.id)
 
-    # Generate panels and system stats
-    out = private_panel(_)
+    # Prepare response data
     UP, CPU, RAM, DISK = await bot_sys_stats()
-    caption = _["start_2"].format(
-        message.from_user.mention, app.mention, UP, DISK, CPU, RAM
+    caption = (
+        f"Hello {message.from_user.mention},\n\n"
+        f"Welcome to the bot! Here are some stats about the system:\n"
+        f"**Uptime:** {UP}\n**Disk Usage:** {DISK}\n**CPU Usage:** {CPU}\n**RAM Usage:** {RAM}\n\n"
+        f"Use the buttons below to explore more!"
     )
 
-    # Send the video as a quoted reply
+    # Send the start video as a quoted reply
     video_message = await send_start_video(
         chat_id=message.chat.id,
-        reply_to_message_id=message.message_id,  # Quote the `/start` command
+        reply_to_message_id=message.message_id,
     )
 
     if video_message:
-        # Send the text and inline buttons as a separate message
-        try:
-            await app.send_message(
-                chat_id=message.chat.id,
-                text=caption,
-                reply_markup=InlineKeyboardMarkup(private_panel(_)),
-            )
-        except Exception as e:
-            print(f"Error sending text: {e}")
+        print("Start video sent successfully.")
+    else:
+        print("Failed to send start video.")
 
-    # Log if enabled
-    if await is_on_off(2):
+    # Send the buttons and caption
+    try:
         await app.send_message(
-            chat_id=config.LOG_GROUP_ID,
-            text=f"{message.from_user.mention} started the bot.",
+            chat_id=message.chat.id,
+            text=caption,
+            reply_markup=InlineKeyboardMarkup(private_panel(None)),
         )
+        print("Start message sent successfully.")
+    except Exception as e:
+        print(f"Error sending start message: {e}")
 
 
-@app.on_message(filters.command("start") & filters.group & ~BANNED_USERS)
-@LanguageStart
-async def start_group(client, message: Message, _):
-    out = start_panel(_)
-    uptime = int(time.time() - _boot_)
-    caption = _["start_1"].format(app.mention, get_readable_time(uptime))
+@app.on_message(filters.command("start") & filters.group)
+async def start_group(client, message: Message):
+    """Handle the /start command in groups."""
+    print(f"Received /start command in group: {message.chat.title}")
 
-    # Send the video as a quoted reply
-    video_message = await send_start_video(
-        chat_id=message.chat.id,
-        reply_to_message_id=message.message_id,  # Quote the `/start` command
-    )
-
-    if video_message:
-        try:
-            await app.send_message(
-                chat_id=message.chat.id,
-                text=caption,
-                reply_markup=InlineKeyboardMarkup(out),
-            )
-        except Exception as e:
-            print(f"Error sending text in group: {e}")
-
+    # Log the chat in the database
     await add_served_chat(message.chat.id)
 
+    uptime = int(time.time() - _boot_)
+    caption = f"Hello, {message.chat.title}!\n\nThe bot is running smoothly.\n**Uptime:** {uptime}s."
 
-@app.on_message(filters.new_chat_members, group=-1)
-async def welcome(client, message: Message):
-    for member in message.new_chat_members:
-        try:
-            language = await get_lang(message.chat.id) or "en"
-            _ = get_string(language)
+    # Send the start video as a quoted reply
+    video_message = await send_start_video(
+        chat_id=message.chat.id,
+        reply_to_message_id=message.message_id,
+    )
 
-            if await is_banned_user(member.id):
-                await message.chat.ban_member(member.id)
+    if video_message:
+        print("Start video sent in group.")
+    else:
+        print("Failed to send start video in group.")
 
-            if member.id == app.id:
-                if message.chat.type != ChatType.SUPERGROUP:
-                    await message.reply_text(_["start_4"])
-                    return await app.leave_chat(message.chat.id)
-
-                if message.chat.id in await blacklisted_chats():
-                    await message.reply_text(
-                        _["start_5"].format(
-                            app.mention,
-                            f"https://t.me/{app.username}?start=sudolist",
-                            SUPPORT_GROUP,
-                        ),
-                        disable_web_page_preview=True,
-                    )
-                    return await app.leave_chat(message.chat.id)
-
-                out = start_panel(_)
-                caption = _["start_3"].format(
-                    message.from_user.first_name,
-                    app.mention,
-                    message.chat.title,
-                    app.mention,
-                )
-
-                # Send the video as a quoted reply
-                video_message = await send_start_video(
-                    chat_id=message.chat.id,
-                    reply_to_message_id=message.message_id,  # Quote welcome message
-                )
-
-                if video_message:
-                    await app.send_message(
-                        chat_id=message.chat.id,
-                        text=caption,
-                        reply_markup=InlineKeyboardMarkup(out),
-                    )
-                await add_served_chat(message.chat.id)
-
-        except Exception as ex:
-            print(f"Error welcoming new members: {ex}")
+    # Send the caption and buttons
+    try:
+        await app.send_message(
+            chat_id=message.chat.id,
+            text=caption,
+            reply_markup=InlineKeyboardMarkup(start_panel(None)),
+        )
+        print("Start message sent in group.")
+    except Exception as e:
+        print(f"Error sending start message in group: {e}")
