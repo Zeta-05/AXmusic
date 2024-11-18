@@ -1,5 +1,6 @@
 import time
 import asyncio
+
 from pyrogram import filters
 from pyrogram.enums import ChatType
 from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup, Message
@@ -24,18 +25,21 @@ from AviaxMusic.utils.inline import help_pannel, private_panel, start_panel
 from config import BANNED_USERS, SUPPORT_GROUP, START_VIDEO_URL
 from strings import get_string
 
-async def send_start_video(chat_id):
-    """Send the start video without a caption."""
+
+async def send_start_video(chat_id, reply_to_message_id=None):
+    """Send the start video as a quoted reply."""
     try:
         sent_video = await app.send_video(
             chat_id=chat_id,
             video=config.START_VIDEO_URL,
-            supports_streaming=True
+            supports_streaming=True,
+            reply_to_message_id=reply_to_message_id,  # Quoting the message
         )
         return sent_video
     except Exception as e:
         print(f"Error sending video: {e}")
         return None
+
 
 @app.on_message(filters.command("start") & filters.private & ~BANNED_USERS)
 @LanguageStart
@@ -49,19 +53,19 @@ async def start_pm(client, message: Message, _):
         message.from_user.mention, app.mention, UP, DISK, CPU, RAM
     )
 
-    # Send the video first
-    video_message = await send_start_video(message.chat.id)
+    # Send the video as a quoted reply
+    video_message = await send_start_video(
+        chat_id=message.chat.id,
+        reply_to_message_id=message.message_id,  # Quote the `/start` command
+    )
 
     if video_message:
-        # Add a brief delay to ensure the video is fully sent
-        await asyncio.sleep(1)
-
         # Send the text and inline buttons as a separate message
         try:
             await app.send_message(
                 chat_id=message.chat.id,
                 text=caption,
-                reply_markup=InlineKeyboardMarkup(private_panel(_))
+                reply_markup=InlineKeyboardMarkup(private_panel(_)),
             )
         except Exception as e:
             print(f"Error sending text: {e}")
@@ -70,8 +74,9 @@ async def start_pm(client, message: Message, _):
     if await is_on_off(2):
         await app.send_message(
             chat_id=config.LOG_GROUP_ID,
-            text=f"{message.from_user.mention} started the bot."
+            text=f"{message.from_user.mention} started the bot.",
         )
+
 
 @app.on_message(filters.command("start") & filters.group & ~BANNED_USERS)
 @LanguageStart
@@ -80,27 +85,30 @@ async def start_group(client, message: Message, _):
     uptime = int(time.time() - _boot_)
     caption = _["start_1"].format(app.mention, get_readable_time(uptime))
 
-    # Send the video in the group
-    video_message = await send_start_video(message.chat.id)
+    # Send the video as a quoted reply
+    video_message = await send_start_video(
+        chat_id=message.chat.id,
+        reply_to_message_id=message.message_id,  # Quote the `/start` command
+    )
 
     if video_message:
-        await asyncio.sleep(1)  # Ensure video is fully sent
         try:
             await app.send_message(
                 chat_id=message.chat.id,
                 text=caption,
-                reply_markup=InlineKeyboardMarkup(out)
+                reply_markup=InlineKeyboardMarkup(out),
             )
         except Exception as e:
             print(f"Error sending text in group: {e}")
 
     await add_served_chat(message.chat.id)
 
+
 @app.on_message(filters.new_chat_members, group=-1)
 async def welcome(client, message: Message):
     for member in message.new_chat_members:
         try:
-            language = await get_lang(message.chat.id)
+            language = await get_lang(message.chat.id) or "en"
             _ = get_string(language)
 
             if await is_banned_user(member.id):
@@ -116,9 +124,9 @@ async def welcome(client, message: Message):
                         _["start_5"].format(
                             app.mention,
                             f"https://t.me/{app.username}?start=sudolist",
-                            SUPPORT_GROUP
+                            SUPPORT_GROUP,
                         ),
-                        disable_web_page_preview=True
+                        disable_web_page_preview=True,
                     )
                     return await app.leave_chat(message.chat.id)
 
@@ -127,18 +135,20 @@ async def welcome(client, message: Message):
                     message.from_user.first_name,
                     app.mention,
                     message.chat.title,
-                    app.mention
+                    app.mention,
                 )
 
-                # Send the video for new chat members
-                video_message = await send_start_video(message.chat.id)
+                # Send the video as a quoted reply
+                video_message = await send_start_video(
+                    chat_id=message.chat.id,
+                    reply_to_message_id=message.message_id,  # Quote welcome message
+                )
 
                 if video_message:
-                    await asyncio.sleep(1)
                     await app.send_message(
                         chat_id=message.chat.id,
                         text=caption,
-                        reply_markup=InlineKeyboardMarkup(out)
+                        reply_markup=InlineKeyboardMarkup(out),
                     )
                 await add_served_chat(message.chat.id)
 
