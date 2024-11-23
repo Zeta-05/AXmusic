@@ -158,7 +158,7 @@ async def handle_edited_message(client: Client, message: Message):
     This function handles edited messages, deletes them, and sends a message saying
     the message was edited and deleted.
     """
-    if message.text and message.text != message.edit_date:  # Ensure it's an edited message
+    if message.edit_date:  # Check if the message has been edited (edited message will have 'edit_date')
         try:
             # Delete the edited message
             await message.delete()
@@ -170,6 +170,8 @@ async def handle_edited_message(client: Client, message: Message):
             print(f"Error handling edited message: {e}")
 
 
-@app.on_message(filters.edited)
+@app.on_message(filters.text)
 async def edited_message_handler(client: Client, message: Message):
-    await handle_edited_message(client, message)
+    # Check if the message is edited
+    if message.edit_date:  # Check if the message has an edit_date (indicating it was edited)
+        await handle_edited_message(client, message)
