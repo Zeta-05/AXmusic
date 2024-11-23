@@ -14,7 +14,7 @@ async def handle_edited_message(client: Client, message: Message):
             await message.delete()
 
             # Send a message informing the user that their message was edited and deleted
-            notification = f"Your previous message was edited and has been deleted, {message.from_user.mention}."
+            notification = f"{message.from_user.mention}, You Edited a Message And I delted it for Security Purpose."
             await message.reply(notification)
         except Exception as e:
             print(f"Error handling edited message: {e}")
