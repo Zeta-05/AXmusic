@@ -150,28 +150,3 @@ async def welcome(client, message: Message):
 
         except Exception as ex:
             print(f"Error welcoming new members: {ex}")
-
-
-# Add handler for edited messages
-async def handle_edited_message(client: Client, message: Message):
-    """
-    This function handles edited messages, deletes them, and sends a message saying
-    the message was edited and deleted.
-    """
-    if message.edit_date:  # Check if the message has been edited (edited message will have 'edit_date')
-        try:
-            # Delete the edited message
-            await message.delete()
-
-            # Send a notification message
-            notification = f"Your previous message was edited and has been deleted, {message.from_user.mention}."
-            await message.reply(notification)
-        except Exception as e:
-            print(f"Error handling edited message: {e}")
-
-
-@app.on_message(filters.text)
-async def edited_message_handler(client: Client, message: Message):
-    # Check if the message is edited
-    if message.edit_date:  # Check if the message has an edit_date (indicating it was edited)
-        await handle_edited_message(client, message)
