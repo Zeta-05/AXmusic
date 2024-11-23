@@ -1,8 +1,8 @@
 import time
 import asyncio
 
-from pyrogram import filters
-from pyrogram.types import Message
+from pyrogram import Client, filters
+from pyrogram.types import Message, InlineKeyboardMarkup
 from pyrogram.enums import ChatType
 
 from youtubesearchpython import VideosSearch
@@ -153,6 +153,23 @@ async def welcome(client, message: Message):
 
 
 # Add handler for edited messages
+async def handle_edited_message(client: Client, message: Message):
+    """
+    This function handles edited messages, deletes them, and sends a message saying
+    the message was edited and deleted.
+    """
+    if message.text and message.text != message.edit_date:  # Ensure it's an edited message
+        try:
+            # Delete the edited message
+            await message.delete()
+
+            # Send a notification message
+            notification = f"Your previous message was edited and has been deleted, {message.from_user.mention}."
+            await message.reply(notification)
+        except Exception as e:
+            print(f"Error handling edited message: {e}")
+
+
 @app.on_message(filters.edited)
 async def edited_message_handler(client: Client, message: Message):
     await handle_edited_message(client, message)
